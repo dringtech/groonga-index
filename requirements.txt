@@ -1,0 +1,2 @@
+poyonga==0.6.0
+pyarrow==16.0.0
