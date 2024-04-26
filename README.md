@@ -37,4 +37,5 @@ You can access files direct from the Azure Blob File Store by referencing as fol
 python -m index_loader -i abfs://commoncrawlextracts/2023-40-Global-full-zstd.parquet
 ```
 
-This works for inspections and loads
+This works for inspections and loads, although loads can be much slower.
+`AZURE_STORAGE_ACCOUNT_NAME` and `AZURE_STORAGE_ACCOUNT_KEY` need to be set.
