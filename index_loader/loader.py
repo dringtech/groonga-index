@@ -5,6 +5,7 @@ import subprocess
 import time
 
 from poyonga import Groonga
+from tqdm import tqdm
 
 from .source import SourceFile
 
@@ -121,11 +122,10 @@ def control(source, database, pool_size=16, row_group_limit=None, row_group_size
         logger.info("%s has %d row groups (processing %s)", _source,
                     source_row_groups, _row_group_count)
 
-        try:
-            p.map(load_row_group, range(
-                0, _row_group_count, _row_group_size))
-        except Exception as e:
-            logger.error("Something went wrong %s", e)
+        with tqdm(total=_row_group_count) as progress:
+            for _ in p.imap_unordered(load_row_group, range(
+                    0, _row_group_count, _row_group_size)):
+                progress.update(_row_group_size)
         logger.info("Loaded table in %f seconds", time.perf_counter() - start)
 
         # Create the index
