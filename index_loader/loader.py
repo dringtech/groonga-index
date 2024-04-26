@@ -74,6 +74,7 @@ def load_row_group(row_group):
     logger.debug("Read %s rows (columns %s)", data.num_rows, data.column_names)
     ret = g.call('load', table='Site', values=data.to_pylist())
     logger.debug("Completed load of %s: %s rows", row_group, ret.body)
+    return {"rows": ret.body, "n_groups": max_row - row_group, "elapsed": ret.elapsed}
 
 
 def report_status():
@@ -130,9 +131,9 @@ def control(source, database, pool_size=16, row_group_limit=None, row_group_size
                     source_row_groups, _row_group_count)
 
         with tqdm(total=_row_group_count) as progress:
-            for _ in p.imap_unordered(load_row_group, range(
+            for res in p.imap_unordered(load_row_group, range(
                     0, _row_group_count, _row_group_size)):
-                progress.update(_row_group_size)
+                progress.update(res['n_groups'])
         logger.info("Loaded table in %f seconds", time.perf_counter() - start)
 
         # Create the index
