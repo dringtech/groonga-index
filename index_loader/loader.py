@@ -80,7 +80,14 @@ def report_status():
     g = get_groonga()
     site = g.call("object_inspect", name="Site")
     lexicon = g.call("object_inspect", name="Words")
-    return {"site": site.body, "lexicon": lexicon.body}
+    return {
+        "site": {
+            "records": site.body['n_records']
+        },
+        "lexicon": {
+            "records": lexicon.body['n_records']
+        }
+    }
 
 
 def stop_groonga(p):
