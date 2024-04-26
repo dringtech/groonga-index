@@ -105,11 +105,11 @@ def control(source, database, pool_size=16, row_group_limit=None, row_group_size
 
     first_port = 10042
     port_nums = [x for x in range(first_port, first_port + pool_size)]
-    post_nums_queue = mp.Queue()
+    config_queue = mp.Queue()
     for i in port_nums:
-        post_nums_queue.put(i)
+        config_queue.put(i)
 
-    with mp.Pool(pool_size, init, (post_nums_queue, )) as p:
+    with mp.Pool(pool_size, init, (config_queue, )) as p:
         logger.setLevel(logging.INFO)
 
         # Create the tables (also removes existing table and lexicon)
@@ -123,7 +123,7 @@ def control(source, database, pool_size=16, row_group_limit=None, row_group_size
 
         try:
             p.map(load_row_group, range(
-                0, _row_group_count, row_group_size))
+                0, _row_group_count, _row_group_size))
         except Exception as e:
             logger.error("Something went wrong %s", e)
         logger.info("Loaded table in %f seconds", time.perf_counter() - start)
