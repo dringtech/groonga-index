@@ -26,3 +26,15 @@ The following options can be passed to limit or tune the load:
 
 * `-r <n>` Specify number of row groups to process - defaults to all in source file.
 * `-s <n>` Specity number of row groups per batch. Defaults to 1. Can increase memory usage.
+
+The `-i` flag allows you to inspect the source file prior to loading it.
+
+### Accessing cloud storage
+
+You can access files direct from the Azure Blob File Store by referencing as follows:
+
+```sh
+python -m index_loader -i abfs://commoncrawlextracts/2023-40-Global-full-zstd.parquet
+```
+
+This works for inspections and loads

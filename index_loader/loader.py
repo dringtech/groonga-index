@@ -4,8 +4,9 @@ import multiprocessing as mp
 import subprocess
 import time
 
-import pyarrow.parquet as pq
 from poyonga import Groonga
+
+from .source import SourceFile
 
 logger = mp.log_to_stderr()
 # Todo work out how to set formatter... %(asctime)s:%(funcName)s:%(levelname)s:%(message)s
@@ -43,7 +44,11 @@ def setup_tables():
 
 
 def create_index():
+    logLevel = logger.getEffectiveLevel()
     g = get_groonga()
+    logger.setLevel(logging.INFO)
+    ret = g.call('thread_limit', max=8)
+    logger.info('Set thread limit %s', ret)
     ret = (
         g.call("table_create", name="Words", flags="TABLE_PAT_KEY", key_type="ShortText",
                default_tokenizer="TokenBigram", normalizer="NormalizerAuto"),
@@ -51,6 +56,9 @@ def create_index():
                flags="COLUMN_INDEX|WITH_POSITION", type="Site", source="text")
     )
     logger.info(f'Create site lexicon: { [r.status for r in ret] }')
+    ret = g.call('thread_limit', max=1)
+    logger.info('Set thread limit %s', ret)
+    logger.setLevel(logLevel)
 
 
 def load_row_group(row_group):
@@ -59,7 +67,8 @@ def load_row_group(row_group):
                   _row_group_count)
     logger.info("Loading %s row group %s to %s (%s)", _source,
                 row_group, max_row, port)
-    data = pq.ParquetFile(_source).read_row_groups(range(row_group, max_row), columns=[
+    # TODO Externalise the source column names
+    data = SourceFile(_source).read_row_groups(range(row_group, max_row), columns=[
         'URL', 'WebText']).rename_columns(['_key', 'text'])
     logger.debug("Read %s rows (columns %s)", data.num_rows, data.column_names)
     ret = g.call('load', table='Site', values=data.to_pylist())
@@ -86,8 +95,7 @@ def control(source, database, pool_size=16, row_group_limit=None, row_group_size
     _database = database
     _row_group_size = row_group_size
 
-    dataset = pq.ParquetFile(_source)
-    source_row_groups = dataset.num_row_groups
+    source_row_groups = SourceFile(_source).num_row_groups
 
     _row_group_count = row_group_limit or source_row_groups
     if _row_group_count > source_row_groups:
