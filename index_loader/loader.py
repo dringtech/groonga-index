@@ -37,9 +37,9 @@ def setup_tables():
     logger.info('Removed Site table - return code %s', ret.status)
     ret = (
         g.call("table_create", name="Site",
-               flags="TABLE_HASH_KEY", key_type="ShortText"),
+               flags="TABLE_HASH_KEY|KEY_LARGE", key_type="ShortText"),
         g.call("column_create", table="Site", name="text",
-               type="Text", flags="COMPRESS_ZSTD")
+               type="Text", flags="COLUMN_SCALAR|COMPRESS_ZSTD")
     )
     logger.info(f'Create site table: { [r.status for r in ret] }')
 
@@ -54,7 +54,7 @@ def create_index():
         g.call("table_create", name="Words", flags="TABLE_PAT_KEY", key_type="ShortText",
                default_tokenizer="TokenBigram", normalizer="NormalizerAuto"),
         g.call("column_create", table="Words", name="site_text",
-               flags="COLUMN_INDEX|WITH_POSITION", type="Site", source="text")
+               flags="COLUMN_INDEX|INDEX_LARGE|WITH_POSITION", type="Site", source="text")
     )
     logger.info(f'Create site lexicon: { [r.status for r in ret] }')
     ret = g.call('thread_limit', max=1)
@@ -69,8 +69,12 @@ def load_row_group(row_group):
     logger.info("Loading %s row group %s to %s (%s)", _source,
                 row_group, max_row, port)
     # TODO Externalise the source column names
-    data = SourceFile(_source).read_row_groups(range(row_group, max_row), columns=[
-        'URL', 'WebText']).rename_columns(['_key', 'text'])
+    load_rows = {
+        '_key': 'URL',
+        'text': 'WebText'
+    }
+    data = SourceFile(_source).read_row_groups(range(row_group, max_row), columns=list(
+        load_rows.values())).rename_columns(list(load_rows.keys()))
     logger.debug("Read %s rows (columns %s)", data.num_rows, data.column_names)
     ret = g.call('load', table='Site', values=data.to_pylist())
     logger.debug("Completed load of %s: %s rows", row_group, ret.body)
@@ -98,7 +102,7 @@ def stop_groonga(p):
     logger.info("Stopped")
 
 
-def control(source, database, pool_size=16, row_group_limit=None, row_group_size=1):
+def control(source, database, pool_size=4, row_group_limit=None, row_group_size=1):
     global _source, _database, _row_group_size, _row_group_count
     _source = source
     _database = database

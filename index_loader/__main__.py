@@ -18,18 +18,19 @@ def usage(rc=0):
         index_loader -n <db_path>
             Create new blank database at specified path
 
-        index_loader [-r <num_row_groups>] [-s <batch_size>] <db_path> <source_parquet>
+        index_loader [-g <num_row_groups>] [-s <batch_size>] [-p <pool_size>] <db_path> <source_parquet>
             Load database with contents of source parquet
             
-            -r Specify maximum number of row groups to load (defaults to all)
-            -s Specify number of row groups loaded per batch (defaults to 1)
+            -g Number of row groups to load (defaults to all)
+            -s Row groups loaded per batch (defaults to 1)
+            -p Size of pool to run (defaults to 4)
     ''', file=sys.stderr)
     exit(rc)
 
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt(sys.argv[1:], "ing:s:")
+        opts, args = getopt(sys.argv[1:], "ing:p:s:")
     except GetoptError:
         usage(1)
 
@@ -59,6 +60,8 @@ if __name__ == '__main__':
     for o, a in opts:
         if o == '-g':
             cmd_args['row_group_limit'] = int(a)
+        if o == '-p':
+            cmd_args['pool_size'] = int(a)
         if o == '-s':
             cmd_args['row_group_size'] = int(a)
 
